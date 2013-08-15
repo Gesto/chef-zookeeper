@@ -42,20 +42,21 @@ end
 include_recipe "zookeeper::gradle"
 
 jar_file = "#{exhibitor_build_path}/build/libs/exhibitor-#{node[:exhibitor][:version]}.jar"
-if !::File.exists?(jar_file)
-  execute "build exhibitor" do
-    user "root"
-    cwd exhibitor_build_path
-    command 'gradle jar'
-  end
+execute "build exhibitor" do
+  user "root"
+  cwd exhibitor_build_path
+  command 'gradle jar'
+  not_if ::File.exists?(jar_file)
 end
 
 exhibitor_jar = ::File.join(node[:exhibitor][:install_dir], "#{node[:exhibitor][:version]}.jar")
-if !::File.exists?(exhibitor_jar)
-  execute "move exhibitor jar" do
-    user node[:zookeeper][:user]
-    command "cp #{jar_file} #{exhibitor_jar}"
-  end
+execute "move exhibitor jar" do
+  command "cp #{jar_file} #{exhibitor_jar}"
+  not_if ::File.exists?(exhibitor_jar)
+end
+
+bash 'chown exhibitor jar' do
+  code  "chown #{node[:exhibitor][:user]} #{node[:exhibitor][:install_dir]}/#{node[:exhibitor][:version]}.jar"
 end
 
 check_script = ::File.join(node[:exhibitor][:script_dir], 'check-local-zk.py')

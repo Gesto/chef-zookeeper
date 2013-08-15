@@ -49,10 +49,14 @@ directory node[:zookeeper][:install_dir] do
   mode "0755"
 end
 
+# we have to do this as root because we don't necessarily know who owns the chef cache directory (see opsworks)
+dest_dir = ::File.join(node[:zookeeper][:install_dir], zk_basename)
 execute 'install zookeeper' do
-  user node[:zookeeper][:user]
   cwd Chef::Config[:file_cache_path]
-  command "tar -C #{node[:zookeeper][:install_dir]} -zxf #{zk_basename}.tar.gz"
-  not_if File.exists?(::File.join(node[:zookeeper][:install_dir], zk_basename))
+  command <<-eos
+      tar -C #{node[:zookeeper][:install_dir]} -zxf #{zk_basename}.tar.gz
+      chown -R #{node[:zookeeper][:user]} #{dest_dir}
+  eos
+  not_if File.exists?(dest_dir)
 end
 
